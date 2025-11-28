@@ -12,9 +12,12 @@
   "type": "module",
   "description": "Cloudflare Workers backend using Hono + MongoDB Atlas",
   "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
     "hono": "^4.10.4",
     "jsonwebtoken": "^9.0.2",
-    "mongodb": "^6.20.0"
+    "mongodb": "^6.20.0",
+    "mongoose": "^9.0.0"
   },
   "devDependencies": {
     "wrangler": "^4.46.0"
