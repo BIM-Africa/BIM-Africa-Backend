@@ -1,41 +1,17 @@
-import express from "express";
-import { configDotenv } from "dotenv";
-import cors from "cors";
-import allRoutes from "./routes/index.js";
-import { connectDB } from "./config/connectDB.js";
-import fetch from "node-fetch";
+// ✅ Cloudflare Workers + MongoDB (fixed version)
+import { MongoClient } from 'mongodb'
+import allRoutes from './routes/index.js'
+import express from 'express'
+import cors from 'cors'
 
-configDotenv();
-connectDB();
+const app = express()
 
-const app = express();
-const PORT = process.env.PORT;
+app.use(cors())
 
-// Middlewares
-app.use(express.urlencoded({ extended: true }));
-app.use(cors());
-app.use(express.json());
+// ✅ Simple root route
+app.get('/', (c) => c.text('✅ Server running on Cloudflare Workers!'))
 
-app.use("/api", allRoutes);
-
-// reCAPTCHA verify function
-const verifyCaptcha = async (token) => {
-  try {
-    const secret = process.env.RECAPTCHA_SECRET;
-
-    const res = await fetch(
-      `https://www.google.com/recaptcha/api/siteverify?secret=${secret}&response=${token}`,
-      { method: "POST" }
-    );
-
-    const data = await res.json();
-    return data.success === true && data.score >= 0.3;
-  } catch (err) {
-    console.error("Captcha verify error:", err);
-    return false;
-  }
-};
-
+app.use("/api", allRoutes)
 // CONTACT Endpoint
 app.post("/api/contact", async (req, res) => {
   try {
@@ -57,8 +33,6 @@ app.post("/api/contact", async (req, res) => {
   }
 });
 
-// app.listen(PORT, () => {
-//   console.log(`Server running on http://localhost:${PORT}`);
-// });
 
+// ✅ Export the app (Cloudflare entry point)
 export default app
