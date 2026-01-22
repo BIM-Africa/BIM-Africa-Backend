@@ -1,6 +1,12 @@
 import admin from "../models/admin.js";
 import Blog from "../models/blogs.js";
 import jwt from "jsonwebtoken";
+function makeSlug(title) {
+  return title
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-");
+}
 
 // GET /api/blogs with pagination
 export const getBlogs = async (req, res) => {
@@ -49,14 +55,24 @@ export const getBlogById = async (req, res) => {
 // POST /api/blogs
 export const addBlog = async (req, res) => {
   try {
-    const newBlog = new Blog(req.body);
+    const slug = makeSlug(req.body.title);
+
+    const newBlog = new Blog({
+      ...req.body,
+      slug, // 👈 yahan slug add ho gaya
+    });
+
     const saved = await newBlog.save();
     return res.status(201).json(saved);
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: "Failed to create blog", error: error.message });
+    return res.status(500).json({
+      message: "Failed to create blog",
+      error: error.message,
+    });
   }
 };
+
 
 // DELETE /api/blogs/:id
 export const deleteBlog = async (req, res) => {
