@@ -37,7 +37,7 @@ app.post("/api/contact", async (req, res) => {
 
 
 // ✅ Export the app (Cloudflare entry point)
-app.listen( process.env.PORT || 5000, () => {
-  console.log(`Server running on port ${process.env.PORT || 5000}`);
-})
+// app.listen( process.env.PORT || 5000, () => {
+//   console.log(`Server running on port ${process.env.PORT || 5000}`);
+// })
 export default app
