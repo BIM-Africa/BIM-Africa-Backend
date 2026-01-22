@@ -1,46 +1,43 @@
-// ✅ Node.js (Express) + MongoDB (corrected version)
+// ✅ Cloudflare Workers + MongoDB (fixed version)
+import { MongoClient } from 'mongodb'
 import allRoutes from './routes/index.js'
 import express from 'express'
 import cors from 'cors'
 import { connectDB } from './config/connectDB.js'
 
 const app = express()
-
-// ✅ DB connect
 connectDB()
 
-// ✅ Middlewares (IMPORTANT)
 app.use(cors())
-app.use(express.json())
 
-// ✅ Simple root route (Express syntax FIXED)
-app.get('/', (req, res) => {
-  res.send('✅ Server running correctly')
-})
+// ✅ Simple root route
+app.get('/', (c) => c.text('✅ Server running on Cloudflare Workers!'))
 
 app.use("/api", allRoutes)
-
-// ✅ CONTACT Endpoint (tumhara hi logic)
+// CONTACT Endpoint
 app.post("/api/contact", async (req, res) => {
   try {
-    const { name, email, phone, message, captchaToken } = req.body
+    const { name, email, phone, message, captchaToken } = req.body;
 
-    // ⚠️ verifyCaptcha tab hi chalay ga jab function defined/import ho
-    // const human = await verifyCaptcha(captchaToken)
-    // if (!human) {
-    //   return res.status(400).json({ error: "Captcha failed. Try again." })
-    // }
-
-    if (!name || !email || !message) {
-      return res.status(400).json({ error: "Missing required fields." })
+    const human = await verifyCaptcha(captchaToken);
+    if (!human) {
+      return res.status(400).json({ error: "Captcha failed. Try again." });
     }
 
-    return res.json({ success: true })
-  } catch (err) {
-    console.error("Contact API error:", err)
-    return res.status(500).json({ error: "Server error" })
-  }
-})
+    if (!name || !email || !message) {
+      return res.status(400).json({ error: "Missing required fields." });
+    }
 
-// ❌ app.listen mat lagana (Vercel crash karega)
+    return res.json({ success: true });
+  } catch (err) {
+    console.error("Contact API error:", err);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
+
+// ✅ Export the app (Cloudflare entry point)
+app.listen( process.env.PORT || 5000, () => {
+  console.log(`Server running on port ${process.env.PORT || 5000}`);
+})
 export default app
