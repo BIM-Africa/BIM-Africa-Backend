@@ -42,7 +42,13 @@ const blogSchema = new mongoose.Schema(
         isFeature: {
             type: Boolean,
             default: false
-        }
+        },
+        slug:{
+            type: String,
+            required: true,
+            unique: true,
+            index: true
+        },
     },
     { timestamps: true }
 );

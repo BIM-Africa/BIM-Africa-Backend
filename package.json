@@ -2,18 +2,24 @@
   "name": "backend",
   "version": "1.0.0",
   "main": "index.js",
-  "type": "module",
   "scripts": {
-    "dev": "nodemon index.js",
-    "start": "node index.js"
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
   },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "description": "Cloudflare Workers backend using Hono + MongoDB Atlas",
   "dependencies": {
     "cors": "^2.8.5",
-    "dotenv": "^16.4.1",
-    "express": "^4.19.2",
-    "mongoose": "^8.1.0"
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongodb": "^6.20.0",
+    "mongoose": "^9.1.2"
   },
   "devDependencies": {
-    "nodemon": "^3.1.0"
+    "wrangler": "^4.46.0"
   }
 }

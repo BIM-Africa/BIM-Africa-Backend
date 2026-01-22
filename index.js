@@ -3,8 +3,10 @@ import { MongoClient } from 'mongodb'
 import allRoutes from './routes/index.js'
 import express from 'express'
 import cors from 'cors'
+import { connectDB } from './config/connectDB.js'
 
 const app = express()
+connectDB()
 
 app.use(cors())
 
@@ -35,4 +37,7 @@ app.post("/api/contact", async (req, res) => {
 
 
 // ✅ Export the app (Cloudflare entry point)
+app.listen( process.env.PORT || 5000, () => {
+  console.log(`Server running on port ${process.env.PORT || 5000}`);
+})
 export default app
