@@ -1,28 +1,20 @@
-import mongoose from "mongoose";
-import dotenv from "dotenv";
-import Blog from "./models/blogs.js";
-import connectDB from "./config/connectDB.js";
+import slugify from "slugify";
 
-dotenv.config();
+export const createBlog = async (req, res) => {
+  try {
+    // 🔥 AUTO SLUG GENERATION (MANDATORY)
+    if (!req.body.slug || req.body.slug.trim() === "") {
+      req.body.slug = slugify(req.body.title, {
+        lower: true,
+        strict: true,
+      });
+    }
 
-function makeSlug(title) {
-  return title
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
-}
+    const blog = new Blog(req.body);
+    await blog.save();
 
-await connectDB();
-
-const blogs = await Blog.find({
-  $or: [{ slug: { $exists: false } }, { slug: "" }],
-});
-
-for (const blog of blogs) {
-  blog.slug = makeSlug(blog.title);
-  await blog.save();
-}
-
-console.log("✅ Slugs generated for old blogs");
-process.exit();
+    res.status(201).json({ blog });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
