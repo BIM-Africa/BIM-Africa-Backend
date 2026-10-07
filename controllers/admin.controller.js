@@ -2,10 +2,22 @@ import admin from "../models/admin.js";
 import Blog from "../models/blogs.js";
 import jwt from "jsonwebtoken";
 function makeSlug(title) {
-  return title
+  return String(title || "")
     .toLowerCase()
     .trim()
-    .replace(/[^a-z0-9]+/g, "-");
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+// Slug is unique in the DB, so append -2, -3... when a title repeats
+async function uniqueSlug(title, excludeId) {
+  const base = makeSlug(title) || "blog";
+  let slug = base;
+  let n = 2;
+  while (await Blog.exists({ slug, ...(excludeId && { _id: { $ne: excludeId } }) })) {
+    slug = `${base}-${n++}`;
+  }
+  return slug;
 }
 
 // GET /api/blogs with pagination
@@ -55,7 +67,11 @@ export const getBlogById = async (req, res) => {
 // POST /api/blogs
 export const addBlog = async (req, res) => {
   try {
-    const slug = makeSlug(req.body.title);
+    if (!req.body.title || !String(req.body.title).trim()) {
+      return res.status(400).json({ message: "Title is required" });
+    }
+
+    const slug = await uniqueSlug(req.body.title);
 
     const newBlog = new Blog({
       ...req.body,
@@ -89,7 +105,15 @@ export const deleteBlog = async (req, res) => {
 // PUT /api/blogs/:id
 export const updateBlog = async (req, res) => {
   try {
-    const updated = await Blog.findByIdAndUpdate(req.params.id, req.body, {
+    // Keep existing slugs stable (URLs), but give old slug-less blogs one
+    const { slug: _ignored, ...data } = req.body;
+    const existing = await Blog.findById(req.params.id);
+    if (!existing) return res.status(404).json({ message: "Blog not found" });
+    if (!existing.slug) {
+      data.slug = await uniqueSlug(data.title || existing.title, existing._id);
+    }
+
+    const updated = await Blog.findByIdAndUpdate(req.params.id, data, {
       new: true,
       runValidators: true,
     });

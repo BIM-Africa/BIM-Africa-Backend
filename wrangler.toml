@@ -3,6 +3,5 @@ main = "index.js"
 compatibility_date = "2025-11-07"
 compatibility_flags = ["nodejs_compat"]
 
-[vars]
-MONGO_URI = "mongodb+srv://BIMAFRICA:BIMCak2025@cluster0.yi67nnf.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
-JWT_SECRET = "bimafrice"
+# Secrets (MONGO_URI, JWT_SECRET) are not stored here.
+# Set them with: npx wrangler secret put MONGO_URI
