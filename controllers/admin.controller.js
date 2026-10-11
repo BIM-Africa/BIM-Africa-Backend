@@ -1,6 +1,9 @@
 import admin from "../models/admin.js";
 import Blog from "../models/blogs.js";
 import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
+
+const isBcryptHash = (value) => /^\$2[aby]\$\d{2}\$/.test(String(value || ""));
 function makeSlug(title) {
   return String(title || "")
     .toLowerCase()
@@ -18,6 +21,24 @@ async function uniqueSlug(title, excludeId) {
     slug = `${base}-${n++}`;
   }
   return slug;
+}
+
+// Tell the Next.js frontend to rebuild its static blog pages + sitemap.
+// Needs FRONTEND_URL and REVALIDATE_SECRET (same value as on the frontend).
+async function revalidateFrontend(slugs = []) {
+  const base = process.env.FRONTEND_URL;
+  const secret = process.env.REVALIDATE_SECRET;
+  if (!base || !secret) return;
+  try {
+    const res = await fetch(`${base.replace(/\/+$/, "")}/api/revalidate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-revalidate-secret": secret },
+      body: JSON.stringify({ slugs: slugs.filter(Boolean) }),
+    });
+    if (!res.ok) console.error("Frontend revalidate failed:", res.status);
+  } catch (err) {
+    console.error("Frontend revalidate error:", err.message);
+  }
 }
 
 // GET /api/blogs with pagination
@@ -79,6 +100,7 @@ export const addBlog = async (req, res) => {
     });
 
     const saved = await newBlog.save();
+    await revalidateFrontend([saved.slug]);
     return res.status(201).json(saved);
   } catch (error) {
     console.error(error);
@@ -95,6 +117,7 @@ export const deleteBlog = async (req, res) => {
   try {
     const deleted = await Blog.findByIdAndDelete(req.params.id);
     if (!deleted) return res.status(404).json({ message: "Blog not found" });
+    await revalidateFrontend([deleted.slug]);
     return res.status(200).json({ message: "Blog deleted", deleted });
   } catch (error) {
     console.error(error);
@@ -118,6 +141,7 @@ export const updateBlog = async (req, res) => {
       runValidators: true,
     });
     if (!updated) return res.status(404).json({ message: "Blog not found" });
+    await revalidateFrontend([updated.slug]);
     return res.status(200).json(updated);
   } catch (error) {
     console.error(error);
@@ -127,10 +151,12 @@ export const updateBlog = async (req, res) => {
 
 export const updateAdmin = async (req, res) => {
   try {
-    const updated = await admin.findByIdAndUpdate(req.params.id, req.body, {
+    const { _id: _ignored, ...data } = req.body;
+    if (data.password) data.password = await bcrypt.hash(String(data.password), 10);
+    const updated = await admin.findByIdAndUpdate(req.params.id, data, {
       new: true,
       runValidators: true,
-    });
+    }).select("-password");
     if (!updated) return res.status(404).json({ message: "Admin not found" });
     return res.status(200).json(updated);
   } catch (error) {
@@ -141,7 +167,7 @@ export const updateAdmin = async (req, res) => {
 
 export const getAdmin = async (req, res) => {
   try {
-    const adminUpdate = await admin.find().sort({ createdAt: -1 });
+    const adminUpdate = await admin.find().select("-password").sort({ createdAt: -1 });
     return res.status(200).json(adminUpdate);
   } catch (error) {
     console.error(error);
@@ -154,8 +180,24 @@ export const loginAdmin = async (req, res) => {
     const { email, password } = req.body;
     const found = await admin.findOne({ email });
     if (!found) return res.status(404).json({ message: "Admin not found" });
-    if (found.password !== password) return res.status(401).json({ message: "Incorrect password" });
-    const token = jwt.sign({ email: found.email }, process.env.JWT_SECRET);
+    if (!password) return res.status(401).json({ message: "Incorrect password" });
+
+    // Old accounts were saved in plain text: accept once, then store a bcrypt hash
+    let ok;
+    if (isBcryptHash(found.password)) {
+      ok = await bcrypt.compare(String(password), found.password);
+    } else {
+      ok = found.password === password;
+      if (ok) {
+        found.password = await bcrypt.hash(String(password), 10);
+        await found.save();
+      }
+    }
+    if (!ok) return res.status(401).json({ message: "Incorrect password" });
+
+    const token = jwt.sign({ id: found._id, email: found.email }, process.env.JWT_SECRET, {
+      expiresIn: "7d",
+    });
     return res.status(200).json({
       message: "Login successful",
       data: {

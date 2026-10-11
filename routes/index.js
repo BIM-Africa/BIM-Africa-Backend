@@ -10,6 +10,7 @@ import {
   updateAdmin,
   updateBlog
 } from "../controllers/admin.controller.js";
+import { requireAdmin } from "../middleware/auth.js";
 
 const router = Router();
 
@@ -21,7 +22,8 @@ router.get("/blogs", getBlogs);
 // ✅ SLUG ROUTE — MUST BE ABOVE ID ROUTE
 router.get("/blog/slug/:slug", async (req, res) => {
   try {
-    const blog = await Blog.findOne({ slug: req.params.slug });
+    const slug = String(req.params.slug || "").trim().toLowerCase();
+    const blog = await Blog.findOne({ slug });
     if (!blog) {
       return res.status(404).json({ message: "Blog not found" });
     }
@@ -35,15 +37,16 @@ router.get("/blog/slug/:slug", async (req, res) => {
 // ✅ ID ROUTE — BELOW
 router.get("/blog/:id", getBlogById);
 
-router.post("/blog", addBlog);
-router.put("/blog/:id", updateBlog);
-router.delete("/blog/:id", deleteBlog);
+// Writes are admin-only
+router.post("/blog", requireAdmin, addBlog);
+router.put("/blog/:id", requireAdmin, updateBlog);
+router.delete("/blog/:id", requireAdmin, deleteBlog);
 
 // --------------------
 // ADMIN
 // --------------------
-router.put("/admin/:id", updateAdmin);
-router.get("/admin", getAdmin);
+router.put("/admin/:id", requireAdmin, updateAdmin);
+router.get("/admin", requireAdmin, getAdmin);
 router.post("/login", loginAdmin);
 
 export default router;

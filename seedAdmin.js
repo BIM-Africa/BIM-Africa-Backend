@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import Admin from "./models/admin.js"; // use capitalized model name by convention
 import dotenv from "dotenv";
+import bcrypt from "bcryptjs";
 dotenv.config();
 
 const addAdmin = async () => {
@@ -23,7 +24,7 @@ const addAdmin = async () => {
     const newAdmin = new Admin({
       name: "BIM Africa's Admin",
       email: "admin@bimafrica.com",
-      password: "admin123", // optionally hash this
+      password: await bcrypt.hash(process.env.ADMIN_PASSWORD || "admin123", 10),
     });
 
     // 4. Save admin

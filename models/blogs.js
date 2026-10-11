@@ -39,6 +39,14 @@ const blogSchema = new mongoose.Schema(
             type: String,
             required: true,
         },
+        role: {
+            type: String,
+        },
+        // Comma separated, used for the <meta name="keywords"> on the blog page
+        keywords: {
+            type: String,
+            default: "",
+        },
         isFeature: {
             type: Boolean,
             default: false
@@ -47,7 +55,9 @@ const blogSchema = new mongoose.Schema(
             type: String,
             required: true,
             unique: true,
-            index: true
+            index: true,
+            lowercase: true,
+            trim: true
         },
     },
     { timestamps: true }
